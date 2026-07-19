@@ -1,0 +1,7 @@
+requests 
+beautifulsoup4 
+schedule
+python-dotenv
+
+
+# rowevim342@kinws.com
