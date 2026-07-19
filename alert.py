@@ -43,15 +43,119 @@ CONFIG = {
     "EMAIL_SENDER": os.getenv("EMAIL_USER", "").strip(),
     "EMAIL_PASSWORD": os.getenv("EMAIL_PASSWORD", "").strip(),
     "EMAIL_TO": os.getenv("EMAIL_TO", "").strip(),
+    # "SEARCH_QUERIES": [
+    #     "machine learning fresher",
+    #     "AI ML intern",
+    #     "data scientist fresher",
+    #     "deep learning intern",
+    #     "NLP computer vision fresher",
+    #     "generative AI intern",
+    # ],
+    # "LOCATIONS": ["India"],
     "SEARCH_QUERIES": [
-        "machine learning fresher",
-        "AI ML intern",
-        "data scientist fresher",
-        "deep learning intern",
-        "NLP computer vision fresher",
-        "generative AI intern",
-    ],
-    "LOCATIONS": ["India"],
+    # Machine Learning
+    "machine learning engineer",
+    "machine learning fresher",
+    "machine learning intern",
+    "ML engineer",
+    "ML intern",
+
+    # Artificial Intelligence
+    "artificial intelligence engineer",
+    "AI engineer",
+    "AI intern",
+    "AI ML engineer",
+    "AI ML intern",
+    "AI developer",
+
+    # Data Science
+    "data scientist",
+    "data scientist fresher",
+    "data science intern",
+    "data analyst",
+    "data analyst fresher",
+    "business analyst AI",
+
+    # Deep Learning
+    "deep learning engineer",
+    "deep learning intern",
+
+    # NLP
+    "NLP engineer",
+    "NLP intern",
+    "LLM engineer",
+    "LLM intern",
+    "Generative AI engineer",
+    "Generative AI intern",
+    "Prompt engineer",
+    "RAG engineer",
+    "AI agent developer",
+
+    # Computer Vision
+    "computer vision engineer",
+    "computer vision intern",
+    "image processing engineer",
+    "OCR engineer",
+
+    # MLOps
+    "MLOps engineer",
+    "MLOps intern",
+    "ML platform engineer",
+
+    # Python
+    "python AI developer",
+    "python machine learning",
+
+    # Freshers
+    "graduate AI engineer",
+    "entry level AI engineer",
+    "entry level machine learning engineer",
+    "fresher AI engineer",
+    "fresher machine learning engineer",
+    "2026 graduate AI",
+
+    # Research
+    "AI researcher",
+    "research engineer AI",
+    "applied scientist",
+    "research intern AI",
+
+    # Robotics
+    "robotics AI engineer",
+    "autonomous systems engineer",
+
+    # Misc
+    "predictive analytics",
+    "recommendation system engineer",
+    "speech recognition engineer",
+    "time series machine learning"
+],
+
+"LOCATIONS": [
+    "India",
+    "Remote",
+    "Bangalore",
+    "Bengaluru",
+    "Hyderabad",
+    "Pune",
+    "Chennai",
+    "Noida",
+    "Gurgaon",
+    "Gurugram",
+    "Delhi",
+    "New Delhi",
+    "Mumbai",
+    "Navi Mumbai",
+    "Kolkata",
+    "Ahmedabad",
+    "Jaipur",
+    "Indore",
+    "Kochi",
+    "Coimbatore",
+    "Visakhapatnam",
+    "Lucknow",
+    "Remote India"
+],
     "CHECK_EVERY_MINUTES": int(os.getenv("CHECK_EVERY_MINUTES", "30")),
     "MAX_AGE_HOURS": float(os.getenv("MAX_AGE_HOURS", "2")),
     "DATABASE_FILE": str(BASE_DIR / os.getenv("DATABASE_FILE", "job_alerts.db")),
