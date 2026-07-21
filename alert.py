@@ -163,9 +163,12 @@ CONFIG = {
     "CHECK_JD": env_bool("CHECK_JD", True),
     # Strict mode rejects a role unless the title or JD explicitly says
     # intern/fresher/entry-level/graduate trainee/0-2 years.
+    # "STRICT_FRESHER_ONLY": env_bool("STRICT_FRESHER_ONLY", True),
     "STRICT_FRESHER_ONLY": env_bool("STRICT_FRESHER_ONLY", True),
     # A requirement of 2+ years (or a range ending above 2) is experienced.
-    "MAX_FRESHER_RANGE_END": int(os.getenv("MAX_FRESHER_RANGE_END", "2")),
+    # "MAX_FRESHER_RANGE_END": int(os.getenv("MAX_FRESHER_RANGE_END", "2")),
+    # Line ~180: Update MAX_FRESHER_RANGE_END to 1
+    "MAX_FRESHER_RANGE_END": int(os.getenv("MAX_FRESHER_RANGE_END", "1")),  # Changed: 2 → 1
     "SIMILARITY_THRESHOLD": float(os.getenv("SIMILARITY_THRESHOLD", "0.91")),
     "DEDUPE_LOOKBACK_DAYS": int(os.getenv("DEDUPE_LOOKBACK_DAYS", "90")),
     "REQUEST_DELAY_SECONDS": float(os.getenv("REQUEST_DELAY_SECONDS", "1.5")),
@@ -343,9 +346,37 @@ AI_ML_JD_KEYWORDS = [
 # These are intentionally strong signals. Generic terms such as "Bachelor",
 # "Python", "2025" and "graduate" alone are NOT fresher proof; experienced JDs
 # often contain them too.
+# FRESHER_SIGNAL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+#     # Do not treat a random mention such as "mentor interns" as proof that the
+#     # advertised job itself is an internship.
+#     ("intern/internship", re.compile(
+#         r"\b(?:this|an?|the)\s+internship\b|"
+#         r"\bintern(?:ship)?\s+(?:role|position|opening|opportunity|program|vacancy)\b|"
+#         r"\b(?:hiring|seeking|looking\s+for)\b[^.\n]{0,40}\b(?:ai|ml|machine\s+learning|data\s+science)?\s*intern\b|"
+#         r"\b(?:ai|ml|machine\s+learning|data\s+science|deep\s+learning|nlp|computer\s+vision)\s+intern\b|"
+#         r"\b(?:employment|job)\s+type\s*:?\s*internship\b",
+#         re.I,
+#     )),
+#     ("fresher", re.compile(r"\bfreshers?\b|\bfresh\s+graduates?\b", re.I)),
+#     ("recent graduate", re.compile(r"\brecent\s+graduates?\b", re.I)),
+#     ("entry level", re.compile(r"\bentry[\s-]+level\b", re.I)),
+#     ("graduate trainee", re.compile(r"\bgraduate\s+trainee\b", re.I)),
+#     ("campus hiring", re.compile(r"\bcampus\s+(?:hire|hiring|recruitment)\b", re.I)),
+#     ("apprentice", re.compile(r"\bapprentice(?:ship)?\b", re.I)),
+#     ("no experience", re.compile(
+#         r"\b(?:no|zero)\s+(?:prior\s+|work\s+)?experience\b|"
+#         r"\bexperience\s+(?:is\s+)?not\s+required\b",
+#         re.I,
+#     )),
+#     ("0-1/0-2 years", re.compile(
+#         r"\b0\s*(?:-|–|—|to)\s*[12]\s*(?:years?|yrs?)\b|"
+#         r"\b(?:experience|exp)\s*:?\s*0\s*(?:-|–|—|to)\s*[12]\b",
+#         re.I,
+#     )),
+#     ("final-year students", re.compile(r"\bfinal[\s-]+year\s+students?\b", re.I)),
+# ]
+
 FRESHER_SIGNAL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
-    # Do not treat a random mention such as "mentor interns" as proof that the
-    # advertised job itself is an internship.
     ("intern/internship", re.compile(
         r"\b(?:this|an?|the)\s+internship\b|"
         r"\bintern(?:ship)?\s+(?:role|position|opening|opportunity|program|vacancy)\b|"
@@ -365,9 +396,12 @@ FRESHER_SIGNAL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         r"\bexperience\s+(?:is\s+)?not\s+required\b",
         re.I,
     )),
-    ("0-1/0-2 years", re.compile(
-        r"\b0\s*(?:-|–|—|to)\s*[12]\s*(?:years?|yrs?)\b|"
-        r"\b(?:experience|exp)\s*:?\s*0\s*(?:-|–|—|to)\s*[12]\b",
+    # MODIFIED: Now accepts 0-1 year range
+    ("0-1 years", re.compile(
+        r"\b0\s*(?:-|–|—|to)\s*1\s*(?:years?|yrs?)\b|"
+        r"\b(?:experience|exp)\s*:?\s*0\s*(?:-|–|—|to)\s*1\b|"
+        r"\bupto\s*1\s*(?:year|yr)\b|"
+        r"\b1\s*(?:year|yr)\s*(?:of\s+)?experience\b",
         re.I,
     )),
     ("final-year students", re.compile(r"\bfinal[\s-]+year\s+students?\b", re.I)),
@@ -451,18 +485,96 @@ def fresher_signals(text: str, title_only: bool = False) -> list[str]:
     return [name for name, pattern in patterns if pattern.search(text or "")]
 
 
+# def find_experience_rejection(text: str) -> Optional[str]:
+#     """Return a reason when text clearly requires experienced candidates.
+
+#     Allowed examples: "0-1 years", "0-2 years", "up to 2 years".
+#     Rejected examples: "2+ years", "2-4 years", "3 years of experience",
+#     "minimum 2 years", and any range ending above MAX_FRESHER_RANGE_END.
+#     """
+#     if not text:
+#         return None
+
+#     value = text.lower().replace("yrs", "years").replace("yr", "year")
+#     # Normalise common written numbers so "at least three years" is caught.
+#     number_words = {
+#         "one": "1",
+#         "two": "2",
+#         "three": "3",
+#         "four": "4",
+#         "five": "5",
+#         "six": "6",
+#         "seven": "7",
+#         "eight": "8",
+#         "nine": "9",
+#         "ten": "10",
+#     }
+#     for word, number in number_words.items():
+#         value = re.sub(rf"\b{word}\b", number, value)
+
+    # max_end = CONFIG["MAX_FRESHER_RANGE_END"]
+
+    # range_pattern = re.compile(
+    #     r"\b(\d{1,2})\s*(?:-|–|—|to)\s*(\d{1,2})\s*(?:years?|yoe)\b",
+    #     re.I,
+    # )
+    # for match in range_pattern.finditer(value):
+    #     low, high = int(match.group(1)), int(match.group(2))
+    #     if high > max_end or low >= 2:
+    #         return f"experience range {low}-{high} years"
+
+    # plus_pattern = re.compile(r"\b(\d{1,2})\s*\+\s*(?:years?|yoe)\b", re.I)
+    # for match in plus_pattern.finditer(value):
+    #     years = int(match.group(1))
+    #     if years >= 2:
+    #         return f"requires {years}+ years"
+
+    # minimum_pattern = re.compile(
+    #     r"\b(?:minimum(?:\s+of)?|at\s+least|more\s+than|over)\s*"
+    #     r"(?:relevant\s+|professional\s+|work\s+)?(?:experience\s*(?:of|:)?\s*)?"
+    #     r"(\d{1,2})\s*(?:years?|yoe)\b",
+    #     re.I,
+    # )
+    # for match in minimum_pattern.finditer(value):
+    #     years = int(match.group(1))
+    #     qualifier = match.group(0)
+    #     if years >= 2 or (qualifier.startswith(("more", "over")) and years >= 1):
+    #         return qualifier
+
+    # exact_requirement_patterns = [
+    #     re.compile(
+    #         r"\b(?:requires?|required|must\s+have|need(?:ed|s)?|with)\b"
+    #         r"[^.\n;]{0,45}?\b(\d{1,2})\s*(?:years?|yoe)\b",
+    #         re.I,
+    #     ),
+    #     re.compile(
+    #         r"\b(\d{1,2})\s*years?\s+(?:of\s+)?(?:relevant\s+|professional\s+|work\s+)?"
+    #         r"experience\b",
+    #         re.I,
+    #     ),
+    #     re.compile(r"\bexperience\s*:?\s*(\d{1,2})\s*(?:years?|yoe)\b", re.I),
+    #     re.compile(r"\b(\d{1,2})\s*yoe\b", re.I),
+    # ]
+    # for pattern in exact_requirement_patterns:
+    #     for match in pattern.finditer(value):
+    #         years = int(match.group(1))
+    #         if years >= 2:
+    #             return f"requires {years} years of experience"
+
+    # return None
+
 def find_experience_rejection(text: str) -> Optional[str]:
     """Return a reason when text clearly requires experienced candidates.
 
-    Allowed examples: "0-1 years", "0-2 years", "up to 2 years".
-    Rejected examples: "2+ years", "2-4 years", "3 years of experience",
-    "minimum 2 years", and any range ending above MAX_FRESHER_RANGE_END.
+    NOW ALLOWED: "0-1 year", "1 year", "upto 1 year"
+    REJECTED: "1-2 years", "2+ years", "minimum 2 years"
     """
     if not text:
         return None
 
     value = text.lower().replace("yrs", "years").replace("yr", "year")
-    # Normalise common written numbers so "at least three years" is caught.
+    
+    # Normalize number words
     number_words = {
         "one": "1",
         "two": "2",
@@ -478,23 +590,25 @@ def find_experience_rejection(text: str) -> Optional[str]:
     for word, number in number_words.items():
         value = re.sub(rf"\b{word}\b", number, value)
 
-    max_end = CONFIG["MAX_FRESHER_RANGE_END"]
-
+    # CHANGED: Reject if range starts >= 1 OR ends > 1
     range_pattern = re.compile(
         r"\b(\d{1,2})\s*(?:-|–|—|to)\s*(\d{1,2})\s*(?:years?|yoe)\b",
         re.I,
     )
     for match in range_pattern.finditer(value):
         low, high = int(match.group(1)), int(match.group(2))
-        if high > max_end or low >= 2:
+        # Allow 0-1, reject 1-2, 2-3, etc.
+        if low > 0 or high > 1:
             return f"experience range {low}-{high} years"
 
+    # CHANGED: Reject 2+ years (but allow 1 year)
     plus_pattern = re.compile(r"\b(\d{1,2})\s*\+\s*(?:years?|yoe)\b", re.I)
     for match in plus_pattern.finditer(value):
         years = int(match.group(1))
         if years >= 2:
             return f"requires {years}+ years"
 
+    # CHANGED: Reject minimum 2+ years
     minimum_pattern = re.compile(
         r"\b(?:minimum(?:\s+of)?|at\s+least|more\s+than|over)\s*"
         r"(?:relevant\s+|professional\s+|work\s+)?(?:experience\s*(?:of|:)?\s*)?"
@@ -504,9 +618,10 @@ def find_experience_rejection(text: str) -> Optional[str]:
     for match in minimum_pattern.finditer(value):
         years = int(match.group(1))
         qualifier = match.group(0)
-        if years >= 2 or (qualifier.startswith(("more", "over")) and years >= 1):
+        if years >= 2:
             return qualifier
 
+    # CHANGED: Check exact requirements (allow 1 year, reject 2+)
     exact_requirement_patterns = [
         re.compile(
             r"\b(?:requires?|required|must\s+have|need(?:ed|s)?|with)\b"
@@ -524,6 +639,7 @@ def find_experience_rejection(text: str) -> Optional[str]:
     for pattern in exact_requirement_patterns:
         for match in pattern.finditer(value):
             years = int(match.group(1))
+            # Allow 1 year, reject 2+
             if years >= 2:
                 return f"requires {years} years of experience"
 
@@ -962,14 +1078,28 @@ class LinkedInScraper:
         self.session = requests.Session()
         self.session.headers.update(self.HEADERS)
 
+    # def _params(self, query: str, location: str) -> dict[str, str | int]:
+    #     seconds = max(60, int(CONFIG["MAX_AGE_HOURS"] * 3600))
+    #     return {
+    #         "keywords": query,
+    #         "location": location,
+    #         "f_TPR": f"r{seconds}",
+    #         "f_E": "1,2",       # Internship + entry level
+    #         "f_JT": "F,I",      # Full-time + internship
+    #         "sortBy": "DD",
+    #         "position": 1,
+    #         "pageNum": 0,
+    #     }
+
     def _params(self, query: str, location: str) -> dict[str, str | int]:
         seconds = max(60, int(CONFIG["MAX_AGE_HOURS"] * 3600))
         return {
             "keywords": query,
             "location": location,
             "f_TPR": f"r{seconds}",
-            "f_E": "1,2",       # Internship + entry level
-            "f_JT": "F,I",      # Full-time + internship
+            "f_E": "1,2",       # 1=Internship, 2=Entry level (0-1 year)
+            "f_JT": "F,I,P",    # F=Full-time, I=Internship, P=Part-time
+            "f_EL": "1,2",      # NEW: Experience levels 1-2 (0-1 year)
             "sortBy": "DD",
             "position": 1,
             "pageNum": 0,
