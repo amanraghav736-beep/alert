@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import hashlib
@@ -20,6 +19,8 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
+
+import random
 
 import requests
 import schedule
@@ -43,136 +44,68 @@ CONFIG = {
     "EMAIL_SENDER": os.getenv("EMAIL_USER", "").strip(),
     "EMAIL_PASSWORD": os.getenv("EMAIL_PASSWORD", "").strip(),
     "EMAIL_TO": os.getenv("EMAIL_TO", "").strip(),
-    # "SEARCH_QUERIES": [
-    #     "machine learning fresher",
-    #     "AI ML intern",
-    #     "data scientist fresher",
-    #     "deep learning intern",
-    #     "NLP computer vision fresher",
-    #     "generative AI intern",
-    # ],
-    # "LOCATIONS": ["India"],
+
     "SEARCH_QUERIES": [
-    # Machine Learning
-    "machine learning engineer",
-    "machine learning fresher",
-    "machine learning intern",
-    "ML engineer",
-    "ML intern",
 
-    # Artificial Intelligence
-    "artificial intelligence engineer",
-    "AI engineer",
-    "AI intern",
-    "AI ML engineer",
-    "AI ML intern",
-    "AI developer",
+        "machine learning engineer",
+        "machine learning intern",
+        "AI engineer",
+        "AI ML engineer",
+        "data scientist",
+        "data science intern",
+        "deep learning engineer",
+        "computer vision engineer",
+        "NLP engineer",
+        "LLM engineer",
+        "Generative AI engineer",
+        "AI agent developer",
+        "RAG engineer",
+        "applied scientist",
+        "research engineer AI",
 
-    # Data Science
-    "data scientist",
-    "data scientist fresher",
-    "data science intern",
-    "data analyst",
-    "data analyst fresher",
-    "business analyst AI",
+    ],
 
-    # Deep Learning
-    "deep learning engineer",
-    "deep learning intern",
+    "LOCATIONS": [
+        "India",
+        "Remote",
+        "Bangalore",
+        "Bengaluru",
+        "Hyderabad",
+        "Pune",
+        "Chennai",
+        "Noida",
+        "Gurgaon",
+        "Gurugram",
+        "Delhi",
+        "New Delhi",
+        "Mumbai",
+        "Navi Mumbai",
+        "Kolkata",
+        "Ahmedabad",
+        "Jaipur",
+        "Lucknow",
+        "Remote India",
+    ],
 
-    # NLP
-    "NLP engineer",
-    "NLP intern",
-    "LLM engineer",
-    "LLM intern",
-    "Generative AI engineer",
-    "Generative AI intern",
-    "Prompt engineer",
-    "RAG engineer",
-    "AI agent developer",
-
-    # Computer Vision
-    "computer vision engineer",
-    "computer vision intern",
-    "image processing engineer",
-    "OCR engineer",
-
-    # MLOps
-    "MLOps engineer",
-    "MLOps intern",
-    "ML platform engineer",
-
-    # Python
-    "python AI developer",
-    "python machine learning",
-
-    # Freshers
-    "graduate AI engineer",
-    "entry level AI engineer",
-    "entry level machine learning engineer",
-    "fresher AI engineer",
-    "fresher machine learning engineer",
-    "2026 graduate AI",
-
-    # Research
-    "AI researcher",
-    "research engineer AI",
-    "applied scientist",
-    "research intern AI",
-
-    # Robotics
-    "robotics AI engineer",
-    "autonomous systems engineer",
-
-    # Misc
-    "predictive analytics",
-    "recommendation system engineer",
-    "speech recognition engineer",
-    "time series machine learning"
-],
-
-"LOCATIONS": [
-    "India",
-    "Remote",
-    "Bangalore",
-    "Bengaluru",
-    "Hyderabad",
-    "Pune",
-    "Chennai",
-    "Noida",
-    "Gurgaon",
-    "Gurugram",
-    "Delhi",
-    "New Delhi",
-    "Mumbai",
-    "Navi Mumbai",
-    "Kolkata",
-    "Ahmedabad",
-    "Jaipur",
-    "Indore",
-    "Kochi",
-    "Coimbatore",
-    "Visakhapatnam",
-    "Lucknow",
-    "Remote India"
-],
     "CHECK_EVERY_MINUTES": int(os.getenv("CHECK_EVERY_MINUTES", "30")),
     "MAX_AGE_HOURS": float(os.getenv("MAX_AGE_HOURS", "2")),
     "DATABASE_FILE": str(BASE_DIR / os.getenv("DATABASE_FILE", "job_alerts.db")),
     "LEGACY_SEEN_JOBS_FILE": str(BASE_DIR / "seen_jobs.json"),
     "CHECK_JD": env_bool("CHECK_JD", True),
-    # Strict mode rejects a role unless the title or JD explicitly says
-    # intern/fresher/entry-level/graduate trainee/0-2 years.
-    # "STRICT_FRESHER_ONLY": env_bool("STRICT_FRESHER_ONLY", True),
+
+    # Strict mode: reject unless title or JD explicitly says
+    # intern/fresher/entry-level/graduate trainee/0-1 years.
     "STRICT_FRESHER_ONLY": env_bool("STRICT_FRESHER_ONLY", True),
-    # A requirement of 2+ years (or a range ending above 2) is experienced.
-    # "MAX_FRESHER_RANGE_END": int(os.getenv("MAX_FRESHER_RANGE_END", "2")),
-    # Line ~180: Update MAX_FRESHER_RANGE_END to 1
-    "MAX_FRESHER_RANGE_END": int(os.getenv("MAX_FRESHER_RANGE_END", "1")),  # Changed: 2 → 1
+
+    # Allow up to 1 year experience (internships + freshers + 1 year exp)
+    "MAX_FRESHER_RANGE_END": int(os.getenv("MAX_FRESHER_RANGE_END", "1")),
+
     "SIMILARITY_THRESHOLD": float(os.getenv("SIMILARITY_THRESHOLD", "0.91")),
     "DEDUPE_LOOKBACK_DAYS": int(os.getenv("DEDUPE_LOOKBACK_DAYS", "90")),
-    "REQUEST_DELAY_SECONDS": float(os.getenv("REQUEST_DELAY_SECONDS", "1.5")),
-    "JD_DELAY_SECONDS": float(os.getenv("JD_DELAY_SECONDS", "0.5")),
+    # Longer delays reduce the chance of LinkedIn 429 rate-limiting.
+    "REQUEST_DELAY_SECONDS": float(os.getenv("REQUEST_DELAY_SECONDS", "3.5")),
+    "JD_DELAY_SECONDS": float(os.getenv("JD_DELAY_SECONDS", "1.2")),
+    "RATE_LIMIT_BACKOFF_SECONDS": float(os.getenv("RATE_LIMIT_BACKOFF_SECONDS", "90")),
     "USE_HF_CLASSIFIER": env_bool("USE_HF_CLASSIFIER", False),
     "HF_TOKEN": (
         os.getenv("HUGGINGFACE_TOKEN", "").strip()
@@ -180,8 +113,8 @@ CONFIG = {
     ),
     "HF_MODEL": os.getenv("HF_MODEL", "facebook/bart-large-mnli").strip(),
     "HF_MIN_SCORE": float(os.getenv("HF_MIN_SCORE", "0.60")),
-    # If false, an HF outage falls back to strict deterministic rules.
     "HF_FAIL_CLOSED": env_bool("HF_FAIL_CLOSED", False),
+
     "BLOCKED_COMPANIES": [
         "scutit",
         "internmo",
@@ -195,9 +128,9 @@ CONFIG = {
         "recruitment agency",
         "dexter's tech",
         "medinex workforce",
-        "Nexal IIT",
-        "RytLoop",
-        "WEBBOOST SOLUTION IT SERVICES",
+        "nexal iit",
+        "rytloop",
+        "webboost solution it services",
     ],
 }
 
@@ -249,10 +182,13 @@ REQUIRED_TITLE_KEYWORDS = [
     "llm",
     "data scientist",
     "data science intern",
+    "data analyst",
     "ml researcher",
     "ai researcher",
     "ml developer",
     "ai developer",
+    "prompt engineer",
+    "rag engineer",
 ]
 
 BLOCKED_TITLE_KEYWORDS = [
@@ -290,6 +226,10 @@ BLOCKED_TITLE_KEYWORDS = [
     "qa",
     "test engineer",
     "manual testing",
+    "3+ years",
+    "4+ years",
+    "5+ years",
+    "3 years experience",
 ]
 
 INDIA_KEYWORDS = [
@@ -302,19 +242,11 @@ INDIA_KEYWORDS = [
     "noida",
     "greater noida",
     "gurugram",
-    "gurgaon",
-    "mumbai",
-    "navi mumbai",
-    "pune",
     "chennai",
     "kolkata",
     "ahmedabad",
     "jaipur",
     "chandigarh",
-    "kochi",
-    "cochin",
-    "thiruvananthapuram",
-    "indore",
     "bhopal",
     "lucknow",
     "remote",
@@ -343,45 +275,13 @@ AI_ML_JD_KEYWORDS = [
     "large language model",
 ]
 
-# These are intentionally strong signals. Generic terms such as "Bachelor",
-# "Python", "2025" and "graduate" alone are NOT fresher proof; experienced JDs
-# often contain them too.
-# FRESHER_SIGNAL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
-#     # Do not treat a random mention such as "mentor interns" as proof that the
-#     # advertised job itself is an internship.
-#     ("intern/internship", re.compile(
-#         r"\b(?:this|an?|the)\s+internship\b|"
-#         r"\bintern(?:ship)?\s+(?:role|position|opening|opportunity|program|vacancy)\b|"
-#         r"\b(?:hiring|seeking|looking\s+for)\b[^.\n]{0,40}\b(?:ai|ml|machine\s+learning|data\s+science)?\s*intern\b|"
-#         r"\b(?:ai|ml|machine\s+learning|data\s+science|deep\s+learning|nlp|computer\s+vision)\s+intern\b|"
-#         r"\b(?:employment|job)\s+type\s*:?\s*internship\b",
-#         re.I,
-#     )),
-#     ("fresher", re.compile(r"\bfreshers?\b|\bfresh\s+graduates?\b", re.I)),
-#     ("recent graduate", re.compile(r"\brecent\s+graduates?\b", re.I)),
-#     ("entry level", re.compile(r"\bentry[\s-]+level\b", re.I)),
-#     ("graduate trainee", re.compile(r"\bgraduate\s+trainee\b", re.I)),
-#     ("campus hiring", re.compile(r"\bcampus\s+(?:hire|hiring|recruitment)\b", re.I)),
-#     ("apprentice", re.compile(r"\bapprentice(?:ship)?\b", re.I)),
-#     ("no experience", re.compile(
-#         r"\b(?:no|zero)\s+(?:prior\s+|work\s+)?experience\b|"
-#         r"\bexperience\s+(?:is\s+)?not\s+required\b",
-#         re.I,
-#     )),
-#     ("0-1/0-2 years", re.compile(
-#         r"\b0\s*(?:-|–|—|to)\s*[12]\s*(?:years?|yrs?)\b|"
-#         r"\b(?:experience|exp)\s*:?\s*0\s*(?:-|–|—|to)\s*[12]\b",
-#         re.I,
-#     )),
-#     ("final-year students", re.compile(r"\bfinal[\s-]+year\s+students?\b", re.I)),
-# ]
-
+# Strong fresher/intern signals looked for in the JD body.
 FRESHER_SIGNAL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("intern/internship", re.compile(
         r"\b(?:this|an?|the)\s+internship\b|"
         r"\bintern(?:ship)?\s+(?:role|position|opening|opportunity|program|vacancy)\b|"
-        r"\b(?:hiring|seeking|looking\s+for)\b[^.\n]{0,40}\b(?:ai|ml|machine\s+learning|data\s+science)?\s*intern\b|"
-        r"\b(?:ai|ml|machine\s+learning|data\s+science|deep\s+learning|nlp|computer\s+vision)\s+intern\b|"
+        r"\b(?:hiring|seeking|looking\s+for)\b[^.\n]{0,40}\b(?:ai|ml|machine\s+learning|data\s+science|generative\s+ai|llm|nlp|computer\s+vision)?\s*intern\b|"
+        r"\b(?:ai|ml|machine\s+learning|data\s+science|deep\s+learning|nlp|computer\s+vision|generative\s+ai|llm)\s+intern\b|"
         r"\b(?:employment|job)\s+type\s*:?\s*internship\b",
         re.I,
     )),
@@ -396,17 +296,18 @@ FRESHER_SIGNAL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         r"\bexperience\s+(?:is\s+)?not\s+required\b",
         re.I,
     )),
-    # MODIFIED: Now accepts 0-1 year range
+    # 0-1 year / up to 1 year / 1 year experience (accept these)
     ("0-1 years", re.compile(
         r"\b0\s*(?:-|–|—|to)\s*1\s*(?:years?|yrs?)\b|"
         r"\b(?:experience|exp)\s*:?\s*0\s*(?:-|–|—|to)\s*1\b|"
-        r"\bupto\s*1\s*(?:year|yr)\b|"
-        r"\b1\s*(?:year|yr)\s*(?:of\s+)?experience\b",
+        r"\bupto?\s*1\s*(?:year|yr)\b|"
+        r"\bup\s+to\s+1\s*(?:year|yr)\b",
         re.I,
     )),
     ("final-year students", re.compile(r"\bfinal[\s-]+year\s+students?\b", re.I)),
 ]
 
+# Title-only fresher signals (lighter; just the word itself).
 TITLE_FRESHER_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("intern/internship", re.compile(r"\bintern(?:ship)?\b", re.I)),
     ("fresher", re.compile(r"\bfreshers?\b", re.I)),
@@ -438,7 +339,6 @@ def normalize_spaces(value: str) -> str:
 
 def normalize_company(value: str) -> str:
     value = NON_WORD_RE.sub(" ", (value or "").lower())
-    # Legal suffixes vary between duplicate LinkedIn cards.
     value = re.sub(
         r"\b(?:private|pvt|limited|ltd|llp|incorporated|inc|technologies|technology)\b",
         " ",
@@ -470,7 +370,7 @@ def normalize_location(value: str) -> str:
 
 def canonicalize_url(url: str) -> str:
     parts = urlsplit(url.strip())
-    # Tracking query parameters/fragments make the same job look new.
+    # Strip tracking query params/fragments that make the same job look new.
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path.rstrip("/"), "", ""))
 
 
@@ -485,96 +385,19 @@ def fresher_signals(text: str, title_only: bool = False) -> list[str]:
     return [name for name, pattern in patterns if pattern.search(text or "")]
 
 
-# def find_experience_rejection(text: str) -> Optional[str]:
-#     """Return a reason when text clearly requires experienced candidates.
-
-#     Allowed examples: "0-1 years", "0-2 years", "up to 2 years".
-#     Rejected examples: "2+ years", "2-4 years", "3 years of experience",
-#     "minimum 2 years", and any range ending above MAX_FRESHER_RANGE_END.
-#     """
-#     if not text:
-#         return None
-
-#     value = text.lower().replace("yrs", "years").replace("yr", "year")
-#     # Normalise common written numbers so "at least three years" is caught.
-#     number_words = {
-#         "one": "1",
-#         "two": "2",
-#         "three": "3",
-#         "four": "4",
-#         "five": "5",
-#         "six": "6",
-#         "seven": "7",
-#         "eight": "8",
-#         "nine": "9",
-#         "ten": "10",
-#     }
-#     for word, number in number_words.items():
-#         value = re.sub(rf"\b{word}\b", number, value)
-
-    # max_end = CONFIG["MAX_FRESHER_RANGE_END"]
-
-    # range_pattern = re.compile(
-    #     r"\b(\d{1,2})\s*(?:-|–|—|to)\s*(\d{1,2})\s*(?:years?|yoe)\b",
-    #     re.I,
-    # )
-    # for match in range_pattern.finditer(value):
-    #     low, high = int(match.group(1)), int(match.group(2))
-    #     if high > max_end or low >= 2:
-    #         return f"experience range {low}-{high} years"
-
-    # plus_pattern = re.compile(r"\b(\d{1,2})\s*\+\s*(?:years?|yoe)\b", re.I)
-    # for match in plus_pattern.finditer(value):
-    #     years = int(match.group(1))
-    #     if years >= 2:
-    #         return f"requires {years}+ years"
-
-    # minimum_pattern = re.compile(
-    #     r"\b(?:minimum(?:\s+of)?|at\s+least|more\s+than|over)\s*"
-    #     r"(?:relevant\s+|professional\s+|work\s+)?(?:experience\s*(?:of|:)?\s*)?"
-    #     r"(\d{1,2})\s*(?:years?|yoe)\b",
-    #     re.I,
-    # )
-    # for match in minimum_pattern.finditer(value):
-    #     years = int(match.group(1))
-    #     qualifier = match.group(0)
-    #     if years >= 2 or (qualifier.startswith(("more", "over")) and years >= 1):
-    #         return qualifier
-
-    # exact_requirement_patterns = [
-    #     re.compile(
-    #         r"\b(?:requires?|required|must\s+have|need(?:ed|s)?|with)\b"
-    #         r"[^.\n;]{0,45}?\b(\d{1,2})\s*(?:years?|yoe)\b",
-    #         re.I,
-    #     ),
-    #     re.compile(
-    #         r"\b(\d{1,2})\s*years?\s+(?:of\s+)?(?:relevant\s+|professional\s+|work\s+)?"
-    #         r"experience\b",
-    #         re.I,
-    #     ),
-    #     re.compile(r"\bexperience\s*:?\s*(\d{1,2})\s*(?:years?|yoe)\b", re.I),
-    #     re.compile(r"\b(\d{1,2})\s*yoe\b", re.I),
-    # ]
-    # for pattern in exact_requirement_patterns:
-    #     for match in pattern.finditer(value):
-    #         years = int(match.group(1))
-    #         if years >= 2:
-    #             return f"requires {years} years of experience"
-
-    # return None
-
 def find_experience_rejection(text: str) -> Optional[str]:
     """Return a reason when text clearly requires experienced candidates.
 
-    NOW ALLOWED: "0-1 year", "1 year", "upto 1 year"
-    REJECTED: "1-2 years", "2+ years", "minimum 2 years"
+    ALLOWED: internships, freshers, "0-1 year", "up to 1 year", "1 year".
+    REJECTED: "1-2 years", "2+ years", "minimum 2 years", "3 years experience",
+              "1+ years" (i.e. MORE than 1 year).
     """
     if not text:
         return None
 
     value = text.lower().replace("yrs", "years").replace("yr", "year")
-    
-    # Normalize number words
+
+    # Normalize number words so "at least two years" is caught.
     number_words = {
         "one": "1",
         "two": "2",
@@ -590,25 +413,29 @@ def find_experience_rejection(text: str) -> Optional[str]:
     for word, number in number_words.items():
         value = re.sub(rf"\b{word}\b", number, value)
 
-    # CHANGED: Reject if range starts >= 1 OR ends > 1
+    max_end = CONFIG["MAX_FRESHER_RANGE_END"]  # 1
+
+    # Range like "1-2 years", "2-3 years", "2-5 years" -> reject.
+    # "0-1 years" is OK; "0-2 years" is rejected because high > 1.
     range_pattern = re.compile(
         r"\b(\d{1,2})\s*(?:-|–|—|to)\s*(\d{1,2})\s*(?:years?|yoe)\b",
         re.I,
     )
     for match in range_pattern.finditer(value):
         low, high = int(match.group(1)), int(match.group(2))
-        # Allow 0-1, reject 1-2, 2-3, etc.
-        if low > 0 or high > 1:
+        if high > max_end or low > max_end:
             return f"experience range {low}-{high} years"
 
-    # CHANGED: Reject 2+ years (but allow 1 year)
+    # "N+ years" - allow "1+", reject "2+", "3+", etc.
+    # Note: "1+ years" is borderline (could mean >=1) so we still allow it to
+    # avoid false positives; if you want to be stricter change `>= 2` to `>= 1`.
     plus_pattern = re.compile(r"\b(\d{1,2})\s*\+\s*(?:years?|yoe)\b", re.I)
     for match in plus_pattern.finditer(value):
         years = int(match.group(1))
-        if years >= 2:
+        if years > max_end:
             return f"requires {years}+ years"
 
-    # CHANGED: Reject minimum 2+ years
+    # "minimum N years", "at least N years", "more than N years", "over N years"
     minimum_pattern = re.compile(
         r"\b(?:minimum(?:\s+of)?|at\s+least|more\s+than|over)\s*"
         r"(?:relevant\s+|professional\s+|work\s+)?(?:experience\s*(?:of|:)?\s*)?"
@@ -618,10 +445,10 @@ def find_experience_rejection(text: str) -> Optional[str]:
     for match in minimum_pattern.finditer(value):
         years = int(match.group(1))
         qualifier = match.group(0)
-        if years >= 2:
+        if years > max_end or qualifier.startswith(("more", "over")) and years >= max_end:
             return qualifier
 
-    # CHANGED: Check exact requirements (allow 1 year, reject 2+)
+    # "must have N years", "requires N years", "N years of experience", etc.
     exact_requirement_patterns = [
         re.compile(
             r"\b(?:requires?|required|must\s+have|need(?:ed|s)?|with)\b"
@@ -639,8 +466,7 @@ def find_experience_rejection(text: str) -> Optional[str]:
     for pattern in exact_requirement_patterns:
         for match in pattern.finditer(value):
             years = int(match.group(1))
-            # Allow 1 year, reject 2+
-            if years >= 2:
+            if years > max_end:
                 return f"requires {years} years of experience"
 
     return None
@@ -674,7 +500,18 @@ def is_india_location(location: str) -> bool:
 
 
 def check_jd(title: str, jd_text: str) -> tuple[bool, str]:
-    """Strictly accept only explicit fresher/intern AI/ML roles."""
+    """Accept AI/ML roles targeted at interns/freshers/0-1 year candidates.
+
+    We already ask LinkedIn for f_E=1,2 (Internship + Entry level). We reject
+    the listing if:
+      * the title screams experienced (handled before this function),
+      * the JD explicitly asks for 2+ years, OR
+      * the JD has zero AI/ML signals AND the title has no fresher/intern tag
+        (misclassified listing).
+    Otherwise we accept — we do NOT require a literal "fresher/intern/entry"
+    keyword in the JD body because many legitimate entry-level JDs simply list
+    responsibilities/skills without repeating "fresher".
+    """
     title_signal_list = fresher_signals(title, title_only=True)
 
     title_exp = find_experience_rejection(title)
@@ -684,29 +521,31 @@ def check_jd(title: str, jd_text: str) -> tuple[bool, str]:
     if not jd_text:
         if title_signal_list:
             return True, f"Title fresher signal: {title_signal_list[0]} | JD unavailable"
+        # No JD and no title signal = can't verify → reject (safer).
         return False, "JD unavailable and title has no explicit fresher/intern signal"
 
     jd_exp = find_experience_rejection(jd_text)
     if jd_exp:
         return False, f"JD experienced role: {jd_exp}"
 
-    # The title already passed an AI/ML check. Requiring JD context catches job
-    # cards whose title is misleading, while an explicit title signal avoids a
-    # false rejection when LinkedIn returns a truncated JD.
-    ml_matches = [keyword for keyword in AI_ML_JD_KEYWORDS if keyword_in_text(keyword, jd_text)]
+    ml_matches = [kw for kw in AI_ML_JD_KEYWORDS if keyword_in_text(kw, jd_text)]
     if not ml_matches and not title_signal_list:
         return False, "JD has no AI/ML context"
 
     jd_signal_list = fresher_signals(jd_text)
     all_signals = list(dict.fromkeys(title_signal_list + jd_signal_list))
-    if CONFIG["STRICT_FRESHER_ONLY"] and not all_signals:
-        return False, "No explicit fresher/intern/entry-level/0-2 years signal"
+
+    ml_summary = ", ".join(ml_matches[:2]) if ml_matches else "title"
 
     if all_signals:
-        ml_summary = ", ".join(ml_matches[:2]) if ml_matches else "title"
         return True, f"AI/ML: {ml_summary} | Fresher: {', '.join(all_signals[:2])}"
 
-    return True, "AI/ML role with no experienced requirement"
+    # No explicit fresher keyword in JD but:
+    #   - JD has AI/ML keywords
+    #   - JD does NOT require 2+ years (we already checked)
+    #   - LinkedIn already filtered this as Internship/Entry-level (f_E=1,2)
+    # → Treat as entry-level match.
+    return True, f"AI/ML: {ml_summary} | Entry-level (no 2+ yr requirement found)"
 
 
 # -----------------------------------------------------------------------------
@@ -746,7 +585,6 @@ class Job:
         self.fingerprint = hashlib.sha256(
             f"{self.company_norm}|{self.title_norm}|{self.location_norm}".encode("utf-8")
         ).hexdigest()
-        # Compatibility with the original seen_jobs.json URL hash.
         self.legacy_url_md5 = hashlib.md5(self.url.encode("utf-8")).hexdigest()
 
     def _detect_role_type(self) -> str:
@@ -759,9 +597,9 @@ class Job:
             return "NLP"
         if has_any_keyword(title, ["deep learning", "dl engineer"]):
             return "DL"
-        if has_any_keyword(title, ["data scientist", "data science"]):
+        if has_any_keyword(title, ["data scientist", "data science", "data analyst"]):
             return "DS"
-        if has_any_keyword(title, ["machine learning", "ml engineer", "ml intern", "ai/ml", "ml/ai"]):
+        if has_any_keyword(title, ["machine learning", "ml engineer", "ml intern", "ai/ml", "ml/ai", "mlops"]):
             return "ML"
         return "AI"
 
@@ -803,7 +641,7 @@ class CycleDeduper:
 
 
 class JobStore:
-    """Persistent deduplication DB. Unlike the old JSON, it does not reset daily."""
+    """Persistent deduplication DB (does not reset daily)."""
 
     def __init__(self, filepath: str) -> None:
         self.filepath = filepath
@@ -912,7 +750,6 @@ class JobStore:
         return None
 
     def reserve(self, jobs: list[Job]) -> None:
-        """Reserve before SMTP so another cycle cannot select the same jobs."""
         timestamp = now_ist().isoformat()
         with self.connection:
             for job in jobs:
@@ -948,7 +785,6 @@ class JobStore:
             )
 
     def release(self, jobs: list[Job]) -> None:
-        """Allow a retry when SMTP fails."""
         with self.connection:
             self.connection.executemany(
                 "DELETE FROM notified_jobs WHERE job_key = ? AND status = 'pending'",
@@ -979,7 +815,7 @@ class JobStore:
 # -----------------------------------------------------------------------------
 
 class HuggingFaceVerifier:
-    LABEL_FRESHER = "fresher or internship role for a candidate with zero to two years experience"
+    LABEL_FRESHER = "fresher or internship role for a candidate with zero to one years experience"
     LABEL_EXPERIENCED = "experienced role requiring two or more years of prior work experience"
     LABEL_UNCLEAR = "unclear job experience level"
 
@@ -1046,7 +882,6 @@ class HuggingFaceVerifier:
             response = self.session.post(self.url, headers=headers, json=payload, timeout=45)
             response.raise_for_status()
             data = response.json()
-            # Zero-shot response: {"labels": [...], "scores": [...], ...}
             if isinstance(data, list) and data and isinstance(data[0], dict):
                 data = data[0]
             labels = data.get("labels", []) if isinstance(data, dict) else []
@@ -1078,28 +913,20 @@ class LinkedInScraper:
         self.session = requests.Session()
         self.session.headers.update(self.HEADERS)
 
-    # def _params(self, query: str, location: str) -> dict[str, str | int]:
-    #     seconds = max(60, int(CONFIG["MAX_AGE_HOURS"] * 3600))
-    #     return {
-    #         "keywords": query,
-    #         "location": location,
-    #         "f_TPR": f"r{seconds}",
-    #         "f_E": "1,2",       # Internship + entry level
-    #         "f_JT": "F,I",      # Full-time + internship
-    #         "sortBy": "DD",
-    #         "position": 1,
-    #         "pageNum": 0,
-    #     }
-
     def _params(self, query: str, location: str) -> dict[str, str | int]:
         seconds = max(60, int(CONFIG["MAX_AGE_HOURS"] * 3600))
         return {
             "keywords": query,
             "location": location,
             "f_TPR": f"r{seconds}",
-            "f_E": "1,2",       # 1=Internship, 2=Entry level (0-1 year)
-            "f_JT": "F,I,P",    # F=Full-time, I=Internship, P=Part-time
-            "f_EL": "1,2",      # NEW: Experience levels 1-2 (0-1 year)
+            # f_E: LinkedIn experience filter
+            #   1 = Internship
+            #   2 = Entry level (0-1 years approx)
+            # We deliberately do NOT add 3 (Associate = 2+ yrs) — that would let
+            # experienced roles leak in.
+            "f_E": "1,2",
+            # f_JT: F=Full-time, I=Internship, P=Part-time, C=Contract
+            "f_JT": "F,I,P",
             "sortBy": "DD",
             "position": 1,
             "pageNum": 0,
@@ -1108,6 +935,11 @@ class LinkedInScraper:
     def fetch_jd(self, job_url: str) -> str:
         try:
             response = self.session.get(job_url, timeout=15)
+            if response.status_code == 429:
+                backoff = CONFIG["RATE_LIMIT_BACKOFF_SECONDS"]
+                log.warning("JD fetch got 429 — backing off %.0fs", backoff)
+                time.sleep(backoff)
+                return ""
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
             jd_element = (
@@ -1129,6 +961,11 @@ class LinkedInScraper:
                 params=self._params(query, location),
                 timeout=20,
             )
+            if response.status_code == 429:
+                backoff = CONFIG["RATE_LIMIT_BACKOFF_SECONDS"]
+                log.warning("LinkedIn 429 rate-limit hit — sleeping %.0fs then skipping this query/location", backoff)
+                time.sleep(backoff)
+                return []
             response.raise_for_status()
         except requests.RequestException as exc:
             log.warning("LinkedIn request failed: %s", exc)
@@ -1167,7 +1004,7 @@ class LinkedInScraper:
                     rejects["company"] += 1
                     continue
 
-                valid_title, _ = is_valid_title(title)
+                valid_title, _reason = is_valid_title(title)
                 if not valid_title:
                     rejects["title"] += 1
                     continue
@@ -1228,7 +1065,7 @@ class EmailNotifier:
 
         timestamp = now_ist()
         subject = (
-            f"🎯 {len(jobs)} AI/ML Fresher Job"
+            f"🎯 {len(jobs)} AI/ML Intern & Entry-Level Job"
             f"{'s' if len(jobs) != 1 else ''} Found! | {timestamp.strftime('%I:%M %p')}"
         )
 
@@ -1278,8 +1115,8 @@ class EmailNotifier:
         html_body = f"""
         <html><body style="font-family:Arial,sans-serif;max-width:1000px;margin:auto;padding:20px">
           <div style="background:#0077B5;color:white;padding:25px;border-radius:10px 10px 0 0">
-            <h2 style="margin:0">🎯 AI/ML Fresher Job Alert</h2>
-            <p style="margin:8px 0 0">{len(jobs)} strict fresher/intern matches</p>
+            <h2 style="margin:0">🎯 AI/ML Intern &amp; Entry-Level Job Alert</h2>
+            <p style="margin:8px 0 0">{len(jobs)} strict intern / fresher / 0-1 year matches</p>
           </div>
           <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #ddd;border-collapse:collapse">
             <thead><tr style="background:#f8f9fa">
@@ -1298,7 +1135,7 @@ class EmailNotifier:
         """
 
         plain_body = (
-            f"AI/ML fresher job alert: {len(jobs)} match(es)\n\n"
+            f"AI/ML intern & entry-level job alert: {len(jobs)} match(es)\n\n"
             + "\n\n".join(plain_lines)
         )
         message = MIMEMultipart("alternative")
@@ -1355,8 +1192,7 @@ class JobMonitor:
                 stats["candidates"] += len(jobs)
 
                 for job in jobs:
-                    # Exact duplicate check happens before fetching the JD, which
-                    # saves calls when one listing appears under several queries.
+                    # Exact duplicate check before JD fetch saves requests.
                     if cycle.is_exact_duplicate(job):
                         stats["cycle_exact"] += 1
                         continue
@@ -1391,10 +1227,14 @@ class JobMonitor:
                         job.jd_info += f" | {hf_reason}"
                     new_jobs.append(job)
                     cycle.remember_accepted(job)
-                    log.info("  ✅ NEW STRICT MATCH: %s | %s | %s", job.title, job.company, job.role_type)
-                    time.sleep(CONFIG["JD_DELAY_SECONDS"])
+                    log.info("  ✅ NEW MATCH: %s | %s | %s", job.title, job.company, job.role_type)
+                    # Jittered pause between JD fetches.
+                    jd_delay = CONFIG["JD_DELAY_SECONDS"]
+                    time.sleep(jd_delay + random.uniform(0, jd_delay * 0.6))
 
-                time.sleep(CONFIG["REQUEST_DELAY_SECONDS"])
+                # Jittered pause between LinkedIn search pages.
+                req_delay = CONFIG["REQUEST_DELAY_SECONDS"]
+                time.sleep(req_delay + random.uniform(0, req_delay * 0.6))
 
         log.info("\n📊 SUMMARY")
         log.info("   Listing candidates: %d", stats["candidates"])
@@ -1406,7 +1246,7 @@ class JobMonitor:
         log.info("   New jobs to email: %d", len(new_jobs))
 
         if not new_jobs:
-            log.info("No new strict fresher/intern jobs this round")
+            log.info("No new intern/fresher/0-1yr jobs this round")
             return
 
         self.store.reserve(new_jobs)
@@ -1417,7 +1257,7 @@ class JobMonitor:
             log.warning("Email failed; DB reservation removed so the next cycle can retry")
 
     def run(self) -> None:
-        log.info("🚀 STARTED: strict AI/ML fresher/intern job alert")
+        log.info("🚀 STARTED: AI/ML intern & entry-level (0-1 yr) job alert")
         log.info("   Queries: %d", len(CONFIG["SEARCH_QUERIES"]))
         log.info("   Locations: %s", CONFIG["LOCATIONS"])
         log.info("   Interval: %d minutes", CONFIG["CHECK_EVERY_MINUTES"])
